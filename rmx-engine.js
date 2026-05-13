@@ -1,11 +1,11 @@
-/* RE/MAX STEP TEMPLATE ENGINE v9 */
+/* RE/MAX STEP TEMPLATE ENGINE v10 */
 (function () {
     'use strict';
     function init() {
         var doc = document;
         if (doc.getElementById('stepBar')) return;
-        var isPronto = !!(doc.getElementById('type-pronto') || doc.getElementById('type_pronto'));
-        var isOnDemand = !!(doc.getElementById('type-ondemand') || doc.getElementById('type_ondemand'));
+        var isKits = !!(doc.getElementById('type-kits') || doc.getElementById('type_kits'));
+        var isUnicos = !!(doc.getElementById('type-unicos') || doc.getElementById('type_unicos'));
         var originalForm = doc.querySelector('form');
         if (!originalForm) return;
 
@@ -103,11 +103,29 @@
             + '.stp-btn-submit{background:var(--rm-blue);color:var(--rm-white);box-shadow:0 3px 12px rgba(0,61,165,.25);flex:1}'
             + '.stp-btn-submit:hover{background:var(--rm-blue-dark);box-shadow:0 5px 18px rgba(0,61,165,.3);transform:translateY(-1px)}'
 
-            // Feedback shown inside steps UI
+            // Modal
+            + '.stp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;animation:stpFadeIn .3s ease}'
+            + '.stp-modal{background:var(--rm-white);border-radius:var(--rm-radius-lg);padding:40px 36px;max-width:440px;width:90%;text-align:center;position:relative;box-shadow:var(--rm-shadow-lg);animation:stpModalIn .35s ease-out}'
+            + '@keyframes stpFadeIn{from{opacity:0}to{opacity:1}}'
+            + '@keyframes stpModalIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}'
+            + '.stp-modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--rm-gray-400);cursor:pointer;font-size:1.2rem;padding:4px 8px;border-radius:6px;transition:var(--rm-tr);line-height:1}'
+            + '.stp-modal-close:hover{color:var(--rm-gray-800);background:var(--rm-gray-50)}'
+            + '.stp-modal-icon{font-size:3rem;margin-bottom:16px;display:block}'
+            + '.stp-modal-title{font-family:"Outfit",sans-serif;font-weight:800;font-size:1.3rem;color:var(--rm-blue-dark);margin-bottom:8px}'
+            + '.stp-modal-text{font-size:.92rem;color:var(--rm-gray-600);margin-bottom:28px;line-height:1.5}'
+            + '.stp-modal-btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 32px;border-radius:50px;font-family:"Outfit",sans-serif;font-weight:700;font-size:.92rem;border:none;cursor:pointer;transition:var(--rm-tr);background:var(--rm-red);color:var(--rm-white);box-shadow:0 3px 12px rgba(220,28,46,.25);text-decoration:none}'
+            + '.stp-modal-btn:hover{background:var(--rm-red-hover);box-shadow:0 5px 18px rgba(220,28,46,.3);transform:translateY(-1px)}'
+
+            // Description block (Kits)
+            + '.stp-description-block{margin-top:28px;padding:20px;background:var(--rm-blue-mist);border-radius:var(--rm-radius);font-size:.92rem;color:var(--rm-gray-800);line-height:1.6}'
+            + '.stp-description-block h1,.stp-description-block h2,.stp-description-block h3,.stp-description-block h4{font-family:"Outfit",sans-serif;color:var(--rm-blue-dark);margin-bottom:8px}'
+            + '.stp-description-block p{margin-bottom:10px}'
+            + '.stp-description-block ul,.stp-description-block ol{margin-bottom:10px;padding-left:20px}'
+            + '.stp-description-block img{max-width:100%;border-radius:var(--rm-radius);margin:8px 0}'
+
+            // Error mirror
             + '.stp-error-mirror{display:none;padding-top:6px;color:#ff0000;font-size:.78rem;font-weight:500}'
-            + '.stp-feedback{display:none;margin-top:16px;padding:16px 20px;background:#e6ffec;border:1px solid #b9e6c3;border-radius:var(--rm-radius);color:#2d7a3e;font-weight:600;font-size:.92rem;text-align:center}'
-            + '.stp-feedback.visible{display:block}'
-            // Hide original Netdeal feedback (we show our own in steps UI)
+            // Hide original Netdeal feedback (we show our own modal)
             + 'form [class*="feedback-message"]{display:none!important}'
             + 'form [class*="feedback-message"].stp-show-original{display:block!important}'
 
@@ -122,12 +140,13 @@
 
         var root = doc.createElement('div'); root.id = 'steps-template-root';
         root.innerHTML =
-            '<div class="step-bar" id="stepBar"><div class="step-bar-inner' + (isOnDemand ? ' stp-centered' : '') + '">' +
+            '<div class="step-bar" id="stepBar"><div class="step-bar-inner">' +
             '<div class="step-bar-steps">' + si(1, 'Escolha seu produto', false) + chev + si(2, 'Personalize', true) + chev + si(3, 'Envie seu pedido', false) + '</div>' +
             '<div class="stp-bar-summary" id="stpBarSummary">' +
             '<span style="font-family:Outfit,sans-serif;font-weight:700;font-size:.82rem;color:var(--rm-blue-dark)">Resumo:</span>' +
-            '<div class="stp-bar-summary-item"><span>Qtd:</span><span class="stp-bar-summary-val" id="barSummaryQty">\u2014</span></div>' +
-            '<div class="stp-bar-summary-item"><span>Total:</span><span class="stp-bar-summary-price" id="barSummaryPrice">\u2014</span></div>' +
+            (isKits
+                ? '<span style="font-family:Outfit,sans-serif;font-weight:700;font-size:.82rem;color:var(--rm-blue-dark);margin-right:4px">Kit de produtos</span><span style="font-family:Outfit,sans-serif;font-weight:700;font-size:.82rem;color:var(--rm-gray-600)">Total:</span><span class="stp-bar-summary-price" id="barSummaryPrice">\u2014</span>'
+                : '<div class="stp-bar-summary-item"><span>Qtd:</span><span class="stp-bar-summary-val" id="barSummaryQty">\u2014</span></div><div class="stp-bar-summary-item"><span>Total:</span><span class="stp-bar-summary-price" id="barSummaryPrice">\u2014</span></div>') +
             '</div>' +
             '</div></div>' +
             '<div class="steps-container"><div class="step-body">' +
@@ -147,18 +166,22 @@
         ['product_step', 'customize_step', 'photo_mockup'].forEach(function (id) {
             var el = doc.getElementById(id); if (el) el.classList.add('stp-consumed');
         });
+        // Kits: consume description & price sections
+        if (isKits) {
+            ['description_item', 'price_item'].forEach(function (id) {
+                var el = doc.getElementById(id); if (el) el.classList.add('stp-consumed');
+            });
+        }
         var mockupSrc = doc.getElementById('photo_mockup');
         if (mockupSrc) { var ic = mockupSrc.closest('.ND_PAGE_IMAGE'); if (ic) ic.classList.add('stp-consumed'); }
         doc.querySelectorAll('[id^="upload_file"]').forEach(function (el) {
             if (originalForm.contains(el)) el.classList.add('stp-consumed');
         });
-        // #final_step: hide ALL children (fields + button + everything)
-        // We clone the submit into steps UI, real button stays hidden but clickable
         var finalStep = doc.getElementById('final_step');
         if (finalStep) finalStep.classList.add('stp-consumed');
 
-        // Qty block
-        var qtyInfo = findQtyBlock();
+        // Qty/Size block
+        var qtyInfo = findQtyOrSizeBlock();
         if (qtyInfo && qtyInfo.block) qtyInfo.block.classList.add('stp-consumed');
 
         // ═══ AUTO-FILL: Assunto + Terms checkbox ═══
@@ -200,20 +223,24 @@
         var barSummary = doc.getElementById('stpBarSummary');
         var barQty = doc.getElementById('barSummaryQty'), barPrice = doc.getElementById('barSummaryPrice');
         var previewH = doc.getElementById('previewHeading'), previewSub = doc.getElementById('previewSub');
-        var meta2 = { heading: 'Personalize seu produto', sub: 'Preencha os campos ao lado para personalizar seu pedido.' };
-        var meta3 = { heading: isOnDemand ? 'Envie sua solicita\u00e7\u00e3o' : 'Envie seu pedido', sub: isOnDemand ? 'Preencha seus dados de contato. Retornaremos com o or\u00e7amento!' : 'Confira os dados e envie. Entraremos em contato em breve!' };
+        var meta2 = { heading: isKits ? 'Kit de produtos' : 'Personalize seu produto', sub: isKits ? 'Confira os detalhes do kit e envie seus dados de contato.' : 'Preencha os campos ao lado para personalizar seu pedido.' };
+        var meta3 = { heading: isKits ? 'Envie sua solicita\u00e7\u00e3o' : 'Envie seu pedido', sub: isKits ? 'Preencha seus dados de contato. Retornaremos com o or\u00e7amento!' : 'Confira os dados e envie. Entraremos em contato em breve!' };
 
         function updateBarSummary(qty, price) {
-            barQty.textContent = qty || '\u2014';
+            if (barQty) barQty.textContent = qty || '\u2014';
             barPrice.textContent = price || '\u2014';
-            if (qty && price) barSummary.classList.add('has-content');
+            if (isKits) {
+                if (price) barSummary.classList.add('has-content');
+            } else {
+                if (qty && price) barSummary.classList.add('has-content');
+            }
         }
 
         // ═══ UTILS ═══
         function getLabel(b) { var n = b.querySelector('.input-label > span:first-child'); if (n && n.textContent.trim()) return n.textContent.trim(); var s = b.querySelector('label'); if (s && s.textContent.trim()) return s.textContent.trim(); return ''; }
         function getInput(b) { var sc = b.querySelectorAll('script'); for (var i = 0; i < sc.length; i++)if (sc[i].textContent.indexOf('"ATTACHMENT"') !== -1) return null; var n = b.querySelector('input.input-field,select.input-field,textarea.input-field'); if (n) return n; return b.querySelector('input:not([type="file"]):not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),textarea,select:not(.input-subject-field)'); }
         function isReq(b) { var i = getInput(b); if (i && i.hasAttribute('required')) return true; var sp = b.querySelectorAll('.input-label > span'); for (var j = 0; j < sp.length; j++)if (sp[j].textContent.trim() === '*') return true; return false; }
-        function findQtyBlock() { var blocks = originalForm.querySelectorAll('.input-field-block[form-field]'); for (var i = 0; i < blocks.length; i++) { var l = getLabel(blocks[i]).toLowerCase(); if (l.indexOf('quantidade') !== -1 || l.indexOf('qtd') !== -1) return { block: blocks[i] }; } return null; }
+        function findQtyOrSizeBlock() { var blocks = originalForm.querySelectorAll('.input-field-block[form-field]'); for (var i = 0; i < blocks.length; i++) { var l = getLabel(blocks[i]).toLowerCase(); if (l.indexOf('quantidade') !== -1 || l.indexOf('qtd') !== -1 || l.indexOf('tamanho') !== -1 || l.indexOf('escolha o tamanho') !== -1) return { block: blocks[i], isSize: l.indexOf('tamanho') !== -1 }; } return null; }
 
         // ═══ 1. MOCKUP ═══
         (function () {
@@ -226,9 +253,10 @@
 
         // ═══ 2. QTY/PRICE RADIOS ═══
         (function () {
-            if (isOnDemand) return;
-            var info = findQtyBlock(); if (!info) return;
+            if (isKits) return;
+            var info = findQtyOrSizeBlock(); if (!info) return;
             var block = info.block;
+            var isSize = info.isSize;
             var radios = block.querySelectorAll('input[type="radio"]');
             if (radios.length === 0) return;
             var options = [];
@@ -239,28 +267,30 @@
                 if (!text) text = radio.value || '';
                 if (!text) return;
                 var p = parseQP(text);
-                options.push({ radio: radio, text: text, qty: p ? p.qty : text, price: p ? p.price : '' });
+                var displayLabel = p ? p.qty : text;
+                var summaryQty = isSize ? '1' : (p ? p.qty : text);
+                options.push({ radio: radio, text: text, displayLabel: displayLabel, summaryQty: summaryQty, price: p ? p.price : '' });
             });
             if (options.length === 0) return;
             var fg = doc.createElement('div'); fg.className = 'field-group';
-            var lb = doc.createElement('label'); lb.textContent = 'Quantidade desejada'; fg.appendChild(lb);
+            var lb = doc.createElement('label'); lb.textContent = isSize ? 'Tamanho' : 'Quantidade desejada'; fg.appendChild(lb);
             var grp = doc.createElement('div'); grp.className = 'stp-radio-group';
             options.forEach(function (opt, idx) {
                 var row = doc.createElement('div');
                 row.className = 'stp-radio-opt' + (idx === 0 ? ' selected' : '');
-                row.innerHTML = '<div class="stp-radio-dot"></div><span class="stp-radio-qty">' + opt.qty + '</span>' + (opt.price ? '<span class="stp-radio-price">' + opt.price + '</span>' : '');
+                row.innerHTML = '<div class="stp-radio-dot"></div><span class="stp-radio-qty">' + opt.displayLabel + '</span>' + (opt.price ? '<span class="stp-radio-price">' + opt.price + '</span>' : '');
                 row.addEventListener('click', function () {
                     grp.querySelectorAll('.stp-radio-opt').forEach(function (r) { r.classList.remove('selected'); });
                     row.classList.add('selected');
                     opt.radio.checked = true;
                     opt.radio.dispatchEvent(new Event('change', { bubbles: true }));
-                    updateBarSummary(opt.qty, opt.price);
+                    updateBarSummary(opt.summaryQty, opt.price);
                 });
                 grp.appendChild(row);
             });
             fg.appendChild(grp); formStep2.appendChild(fg);
             if (!options[0].radio.checked) options[0].radio.checked = true;
-            updateBarSummary(options[0].qty, options[0].price);
+            updateBarSummary(options[0].summaryQty, options[0].price);
         })();
 
         function parseQP(s) { if (!s || !s.trim()) return null; s = s.trim(); var p = s.split(/\s*[\u2014\u2013\-]\s*/); if (p.length < 2) { var m = s.match(/(R\$\s*[\d.,]+)/i); if (m) return { qty: s.replace(m[0], '').trim(), price: m[0].trim() }; return null; } return { qty: p[0].trim(), price: p.slice(1).join(' - ').trim() }; }
@@ -274,7 +304,7 @@
             if (blocks.length === 0) blocks = section.querySelectorAll('.form-field');
             blocks.forEach(function (block) {
                 var lbl = getLabel(block).toLowerCase();
-                if (lbl.indexOf('quantidade') !== -1 || lbl.indexOf('qtd') !== -1) return;
+                if (lbl.indexOf('quantidade') !== -1 || lbl.indexOf('qtd') !== -1 || lbl.indexOf('tamanho') !== -1) return;
                 if (lbl.indexOf('assunto') !== -1) return;
                 var input = getInput(block); if (!input) return;
 
@@ -397,43 +427,63 @@
                 nav.appendChild(cloneBtn);
             }
             target.appendChild(nav);
+        }
 
-            // Feedback placeholder (only step 3)
-            if (step === 3) {
-                var fb = doc.createElement('div'); fb.className = 'stp-feedback'; fb.id = 'stpFeedback';
-                fb.textContent = 'Obrigado por enviar! Em breve entraremos em contato.';
-                target.appendChild(fb);
+        // ═══ 7. KITS: DESCRIPTION + PRICE ═══
+        if (isKits) {
+            var descItem = doc.getElementById('description_item');
+            if (descItem) {
+                var descClone = descItem.cloneNode(true);
+                descClone.removeAttribute('id');
+                descClone.classList.add('stp-description-block');
+                var previewSticky = doc.querySelector('.col-preview-sticky');
+                if (previewSticky) previewSticky.appendChild(descClone);
+            }
+            var priceItem = doc.getElementById('price_item');
+            if (priceItem) {
+                var kitPrice = (priceItem.textContent || priceItem.value || '').trim();
+                updateBarSummary('', kitPrice);
             }
         }
 
-        // ═══ 7. OBSERVE FEEDBACK ═══
+        // ═══ 8. SUCCESS MODAL ═══
+        function showSuccessModal() {
+            var overlay = doc.createElement('div');
+            overlay.className = 'stp-modal-overlay';
+            overlay.innerHTML =
+                '<div class="stp-modal">' +
+                '<button class="stp-modal-close" title="Fechar">&times;</button>' +
+                '<span class="stp-modal-icon">\uD83C\uDF89</span>' +
+                '<h2 class="stp-modal-title">Seu pedido foi solicitado com sucesso!</h2>' +
+                '<a href="./remax" class="stp-modal-btn">Continuar comprando</a>' +
+                '</div>';
+            doc.body.appendChild(overlay);
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+            overlay.querySelector('.stp-modal-close').addEventListener('click', function () { overlay.remove(); });
+        }
+
         var feedbackEl = originalForm.querySelector('[class*="feedback-message"]');
         if (feedbackEl) {
             var obs = new MutationObserver(function () {
                 if (feedbackEl.style.display !== 'none' && feedbackEl.style.display !== '') {
-                    // Netdeal showed the feedback → show ours in steps UI
-                    var stpFb = doc.getElementById('stpFeedback');
-                    if (stpFb) {
-                        // Copy text if available
-                        var origText = feedbackEl.textContent.trim();
-                        if (origText) stpFb.textContent = origText;
-                        stpFb.classList.add('visible');
-                    }
+                    showSuccessModal();
                     obs.disconnect();
                 }
             });
             obs.observe(feedbackEl, { attributes: true, attributeFilter: ['style'] });
         }
 
-        // ═══ 8. ASSEMBLE ═══
-        buildFields('customize_step', formStep2);
-        buildUploads(formStep2);
+        // ═══ 9. ASSEMBLE ═══
+        if (!isKits) {
+            buildFields('customize_step', formStep2);
+        }
+        buildUploads(isKits ? formStep3 : formStep2);
         buildNav(2, formStep2);
         buildFields('final_step', formStep3);
         buildNav(3, formStep3);
         doc.querySelector('.step-item[data-step="1"]').classList.add('completed');
 
-        // ═══ 9. NAV CONTROL ═══
+        // ═══ 10. NAV CONTROL ═══
         window._stpGoTo = function (step) {
             if (step === 1) { if (confirm('Voltar para a p\u00e1gina de produtos?')) window.history.back(); return; }
             if (step < 2 || step > 3) return;
