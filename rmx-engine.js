@@ -1,4 +1,5 @@
-/* RE/MAX STEP TEMPLATE ENGINE v10 */
+<script>
+    /* RE/MAX STEP TEMPLATE ENGINE v11 */
 (function () {
     'use strict';
     function init() {
@@ -141,23 +142,26 @@
         var root = doc.createElement('div'); root.id = 'steps-template-root';
         root.innerHTML =
             '<div class="step-bar" id="stepBar"><div class="step-bar-inner">' +
-            '<div class="step-bar-steps">' + si(1, 'Escolha seu produto', false) + chev + si(2, 'Personalize', true) + chev + si(3, 'Envie seu pedido', false) + '</div>' +
+            '<div class="step-bar-steps">' + (isKits
+                ? si(1, 'Escolha seu produto', false) + chev + si(2, 'Confira seu pedido', true)
+                : si(1, 'Escolha seu produto', false) + chev + si(2, 'Personalize', true) + chev + si(3, 'Envie seu pedido', false)) +
+            '</div>' +
             '<div class="stp-bar-summary" id="stpBarSummary">' +
             '<span style="font-family:Outfit,sans-serif;font-weight:700;font-size:.82rem;color:var(--rm-blue-dark)">Resumo:</span>' +
             (isKits
                 ? '<span style="font-family:Outfit,sans-serif;font-weight:700;font-size:.82rem;color:var(--rm-blue-dark);margin-right:4px">Kit de produtos</span><span style="font-family:Outfit,sans-serif;font-weight:700;font-size:.82rem;color:var(--rm-gray-600)">Total:</span><span class="stp-bar-summary-price" id="barSummaryPrice">\u2014</span>'
-                : '<div class="stp-bar-summary-item"><span>Qtd:</span><span class="stp-bar-summary-val" id="barSummaryQty">\u2014</span></div><div class="stp-bar-summary-item"><span>Total:</span><span class="stp-bar-summary-price" id="barSummaryPrice">\u2014</span></div>') +
+                : '<div class="stp-bar-summary-item" id="barSummarySizeItem" style="display:none"><span>T:</span><span class="stp-bar-summary-val" id="barSummarySize">\u2014</span></div><div class="stp-bar-summary-item"><span>Qtd:</span><span class="stp-bar-summary-val" id="barSummaryQty">\u2014</span></div><div class="stp-bar-summary-item"><span>Total:</span><span class="stp-bar-summary-price" id="barSummaryPrice">\u2014</span></div>') +
             '</div>' +
             '</div></div>' +
             '<div class="steps-container"><div class="step-body">' +
             '<div class="col-preview"><div class="col-preview-sticky">' +
-            '<h2 class="preview-heading" id="previewHeading">Personalize seu produto</h2>' +
-            '<p class="preview-sub" id="previewSub">Preencha os campos ao lado para personalizar seu pedido.</p>' +
+            '<h2 class="preview-heading" id="previewHeading">' + (isKits ? 'Confira seu pedido' : 'Personalize seu produto') + '</h2>' +
+            '<p class="preview-sub" id="previewSub">' + (isKits ? 'Confira os detalhes do kit e envie seus dados de contato.' : 'Preencha os campos ao lado para personalizar seu pedido.') + '</p>' +
             '<div class="mockup-frame" id="mockupFrame"></div>' +
             '</div></div>' +
             '<div class="col-form" id="colForm">' +
-            '<div class="form-step-content visible" data-form-step="2" id="formStep2"></div>' +
-            '<div class="form-step-content" data-form-step="3" id="formStep3"></div>' +
+            '<div class="form-step-content' + (isKits ? '' : ' visible') + '" data-form-step="2" id="formStep2"></div>' +
+            '<div class="form-step-content' + (isKits ? ' visible' : '') + '" data-form-step="3" id="formStep3"></div>' +
             '</div>' +
             '</div></div>';
         originalForm.parentNode.insertBefore(root, originalForm);
@@ -215,6 +219,7 @@
 
         // ═══ SUBMIT: Clone into step 3 nav, real stays hidden but functional ═══
         var realSubmitBtn = doc.getElementById('submit-form-send');
+        if (realSubmitBtn) realSubmitBtn.classList.add('stp-consumed');
 
         // ═══ STATE ═══
         var currentStep = 2;
@@ -222,12 +227,17 @@
         var mockupFrame = doc.getElementById('mockupFrame');
         var barSummary = doc.getElementById('stpBarSummary');
         var barQty = doc.getElementById('barSummaryQty'), barPrice = doc.getElementById('barSummaryPrice');
+        var barSize = doc.getElementById('barSummarySize'), barSizeItem = doc.getElementById('barSummarySizeItem');
         var previewH = doc.getElementById('previewHeading'), previewSub = doc.getElementById('previewSub');
         var meta2 = { heading: isKits ? 'Kit de produtos' : 'Personalize seu produto', sub: isKits ? 'Confira os detalhes do kit e envie seus dados de contato.' : 'Preencha os campos ao lado para personalizar seu pedido.' };
         var meta3 = { heading: isKits ? 'Envie sua solicita\u00e7\u00e3o' : 'Envie seu pedido', sub: isKits ? 'Preencha seus dados de contato. Retornaremos com o or\u00e7amento!' : 'Confira os dados e envie. Entraremos em contato em breve!' };
 
-        function updateBarSummary(qty, price) {
+        function updateBarSummary(qty, price, size) {
             if (barQty) barQty.textContent = qty || '\u2014';
+            if (barSize && barSizeItem) {
+                if (size) { barSize.textContent = size; barSizeItem.style.display = 'flex'; }
+                else barSizeItem.style.display = 'none';
+            }
             barPrice.textContent = price || '\u2014';
             if (isKits) {
                 if (price) barSummary.classList.add('has-content');
@@ -267,9 +277,24 @@
                 if (!text) text = radio.value || '';
                 if (!text) return;
                 var p = parseQP(text);
-                var displayLabel = p ? p.qty : text;
-                var summaryQty = isSize ? '1' : (p ? p.qty : text);
-                options.push({ radio: radio, text: text, displayLabel: displayLabel, summaryQty: summaryQty, price: p ? p.price : '' });
+                var displayLabel, summaryQty, sizeLabel = '';
+                if (isSize) {
+                    var qtyMatch = text.match(/(?:Qtd|Quantidade|Qtd\.)\s*:?\s*([\d.,]+)/i);
+                    if (qtyMatch) {
+                        summaryQty = qtyMatch[1];
+                        var qtyIdx = text.search(/(?:Qtd|Quantidade|Qtd\.)\s*:?\s*[\d.,]+/i);
+                        sizeLabel = text.substring(0, qtyIdx).replace(/[\s\-\u2013\u2014]+$/, '').trim();
+                        displayLabel = sizeLabel;
+                    } else {
+                        summaryQty = '1';
+                        sizeLabel = p ? p.qty : text;
+                        displayLabel = sizeLabel;
+                    }
+                } else {
+                    summaryQty = p ? p.qty : text;
+                    displayLabel = summaryQty;
+                }
+                options.push({ radio: radio, text: text, displayLabel: displayLabel, summaryQty: summaryQty, sizeLabel: sizeLabel, price: p ? p.price : '' });
             });
             if (options.length === 0) return;
             var fg = doc.createElement('div'); fg.className = 'field-group';
@@ -284,13 +309,13 @@
                     row.classList.add('selected');
                     opt.radio.checked = true;
                     opt.radio.dispatchEvent(new Event('change', { bubbles: true }));
-                    updateBarSummary(opt.summaryQty, opt.price);
+                    updateBarSummary(opt.summaryQty, opt.price, isSize ? opt.sizeLabel : '');
                 });
                 grp.appendChild(row);
             });
             fg.appendChild(grp); formStep2.appendChild(fg);
             if (!options[0].radio.checked) options[0].radio.checked = true;
-            updateBarSummary(options[0].summaryQty, options[0].price);
+            updateBarSummary(options[0].summaryQty, options[0].price, isSize ? options[0].sizeLabel : '');
         })();
 
         function parseQP(s) { if (!s || !s.trim()) return null; s = s.trim(); var p = s.split(/\s*[\u2014\u2013\-]\s*/); if (p.length < 2) { var m = s.match(/(R\$\s*[\d.,]+)/i); if (m) return { qty: s.replace(m[0], '').trim(), price: m[0].trim() }; return null; } return { qty: p[0].trim(), price: p.slice(1).join(' - ').trim() }; }
@@ -405,7 +430,7 @@
 
         function buildNav(step, target) {
             var nav = doc.createElement('div'); nav.className = 'step-nav';
-            if (step > 2) { var b = doc.createElement('button'); b.type = 'button'; b.className = 'stp-btn stp-btn-secondary'; b.innerHTML = aB + ' Voltar'; b.addEventListener('click', function () { window._stpGoTo(step - 1); }); nav.appendChild(b); }
+            if (step > 2 && !isKits) { var b = doc.createElement('button'); b.type = 'button'; b.className = 'stp-btn stp-btn-secondary'; b.innerHTML = aB + ' Voltar'; b.addEventListener('click', function () { window._stpGoTo(step - 1); }); nav.appendChild(b); }
             if (step < 3) { var n = doc.createElement('button'); n.type = 'button'; n.className = 'stp-btn stp-btn-primary'; n.innerHTML = 'Prosseguir ' + aN; n.addEventListener('click', function () { window._stpGoTo(step + 1); }); nav.appendChild(n); }
             if (step === 3 && realSubmitBtn) {
                 // Clone submit button into step 3 nav
@@ -435,6 +460,7 @@
             if (descItem) {
                 var descClone = descItem.cloneNode(true);
                 descClone.removeAttribute('id');
+                descClone.classList.remove('stp-consumed');
                 descClone.classList.add('stp-description-block');
                 var previewSticky = doc.querySelector('.col-preview-sticky');
                 if (previewSticky) previewSticky.appendChild(descClone);
@@ -476,9 +502,12 @@
         // ═══ 9. ASSEMBLE ═══
         if (!isKits) {
             buildFields('customize_step', formStep2);
+            buildUploads(formStep2);
+            buildNav(2, formStep2);
+        } else {
+            buildUploads(formStep3);
+            currentStep = 3;
         }
-        buildUploads(isKits ? formStep3 : formStep2);
-        buildNav(2, formStep2);
         buildFields('final_step', formStep3);
         buildNav(3, formStep3);
         doc.querySelector('.step-item[data-step="1"]').classList.add('completed');
@@ -486,6 +515,7 @@
         // ═══ 10. NAV CONTROL ═══
         window._stpGoTo = function (step) {
             if (step === 1) { if (confirm('Voltar para a p\u00e1gina de produtos?')) window.history.back(); return; }
+            if (isKits) return;
             if (step < 2 || step > 3) return;
             currentStep = step;
             doc.querySelectorAll('.step-item').forEach(function (el) {
@@ -503,3 +533,4 @@
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+</script>
